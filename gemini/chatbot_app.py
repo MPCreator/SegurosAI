@@ -99,20 +99,25 @@ def home():
     return send_from_directory(".", "chat.html")
 
 def quitar_urls_duplicadas(texto):
-    urls = re.findall(r'https?://\S+', texto)
     urls_vistos = set()
     resultado = []
+
     for linea in texto.split('\n'):
         nueva_linea = linea
-        for url in urls:
-            if url in nueva_linea:
-                if url in urls_vistos:
-                    nueva_linea = nueva_linea.replace(url, '')
-                else:
-                    urls_vistos.add(url)
+
+        urls_en_linea = re.findall(r'\[(https?://[^\]]+)\]', nueva_linea)
+
+        for url in urls_en_linea:
+            if url in urls_vistos:
+                nueva_linea = nueva_linea.replace(f'[{url}]', '')
+            else:
+                urls_vistos.add(url)
+
         if nueva_linea.strip():
             resultado.append(nueva_linea.strip())
+
     return '\n'.join(resultado).strip()
+
 
 
 
