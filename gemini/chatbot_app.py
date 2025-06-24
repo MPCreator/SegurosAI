@@ -6,6 +6,7 @@ import re
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
 
 # --- CARGAR VARIABLES DEL .env ---
 load_dotenv()
@@ -48,7 +49,7 @@ def buscar_similitud(consulta, umbral=0.80):
             "similitud": mejor_score,
             "pregunta": mejor_item["pregunta"],
             "respuesta": mejor_item["respuesta"],
-            "contexto": mejor_item.get("contexto", mejor_item["respuesta"])  # opcional
+            "contexto": mejor_item.get("contexto", mejor_item["respuesta"])  
         }
     else:
         return None
@@ -59,6 +60,7 @@ def generar_respuesta(prompt):
 
 # --- FLASK APP ---
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -118,5 +120,3 @@ def quitar_urls_duplicadas(texto):
 # --- EJECUCIÓN ---
 if __name__ == "__main__":
     app.run(debug=True)
-
-
