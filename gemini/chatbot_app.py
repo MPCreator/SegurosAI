@@ -72,25 +72,36 @@ def chat():
     resultado = buscar_similitud(mensaje)
 
     if resultado:
-        prompt = f"""Eres un consultor de seguros profesional. Un usuario ha hecho la siguiente consulta:
-"{mensaje}"
+        prompt = f"""
+        Eres un asistente especializado en atención al afiliado de un plan de salud privado del Grupo San Pablo. Tu función es resolver dudas de manera clara, precisa y empática, utilizando la información proporcionada. Prioriza siempre ayudar al usuario, sin inventar datos que no estén presentes.
 
-Usa esta información como contexto y responde de forma clara y concisa:
+        Pregunta del usuario:
+        \"{mensaje}\"
 
-"{resultado['contexto']}"
-"""
+        Información relacionada encontrada:
+        \"{resultado['contexto']}\"
+
+        Responde con claridad, como si fueras parte del equipo de soporte oficial de San Pablo.
+        """
     else:
-        prompt = f"""Eres un consultor de seguros profesional.Responde de manera breve, clara y precisa a la siguiente pregunta del usuario:
-"{mensaje}"
-"""
+        prompt = f"""
+        Eres un asistente especializado en atención al afiliado de un plan de salud privado del Grupo San Pablo. Tu función es resolver dudas de manera clara, precisa y empática, utilizando tus conocimientos generales en salud privada. No inventes coberturas o montos específicos si no tienes certeza. Indica al usuario que puede confirmar en los canales oficiales si es necesario.
+
+        Pregunta del usuario:
+        \"{mensaje}\"
+
+        Responde como si fueras parte del equipo de soporte oficial de San Pablo.
+        """
 
     respuesta = generar_respuesta(prompt)
     respuesta = quitar_urls_duplicadas(respuesta)
+
     return jsonify({
         "respuesta": respuesta,
         "usó_contexto": bool(resultado),
         "similitud": resultado["similitud"] if resultado else None
     })
+
 
 
 
