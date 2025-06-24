@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat seguros</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    #chat {
+      width: 100%;
+      max-width: 600px;
+      height: 90vh;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #log {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .msg {
+      max-width: 80%;
+      padding: 0.75rem;
+      border-radius: 10px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #e1f0ff;
+      color: #003366;
+      border-bottom-right-radius: 0;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background: #e9fce9;
+      color: #1a3d1a;
+      border-bottom-left-radius: 0;
+    }
+
+    #input-area {
+      display: flex;
+      padding: 0.75rem;
+      border-top: 1px solid #ddd;
+      background: #f9f9f9;
+    }
+
+    #input {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    h2 {
+      margin: 0;
+      padding: 1rem;
+      background: #007bff;
+      color: white;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <h2>💬 Chat IA</h2>
+    <div id="log"></div>
+    <div id="input-area">
+      <input id="input" placeholder="Escribe tu pregunta...">
+      <button onclick="enviar()">Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    async function enviar() {
+      const input = document.getElementById("input");
+      const log = document.getElementById("log");
+      const mensaje = input.value.trim();
+      if (!mensaje) return;
+
+      agregarMensaje("Tú", mensaje, "user");
+      input.value = "";
+      input.focus();
+
+      try {
+        const res = await fetch("https://chat-seguros.onrender.com/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mensaje })
+        });
+
+        const data = await res.json();
+        const respuesta = data.respuesta || "⚠️ No se obtuvo respuesta.";
+
+        agregarMensaje("IA", respuesta, "bot");
+      } catch (err) {
+        agregarMensaje("IA", "⚠️ Error al conectar con la IA.", "bot");
+      }
+    }
+
+    function agregarMensaje(nombre, texto, clase) {
+      const log = document.getElementById("log");
+      const div = document.createElement("div");
+      div.className = `msg ${clase}`;
+      div.innerHTML = `<b>${nombre}:</b><br>${texto}`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // Enviar con Enter
+    document.getElementById("input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") enviar();
+    });
+  </script>
+</body>
+</html>
