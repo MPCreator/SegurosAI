@@ -120,19 +120,21 @@ def quitar_urls_duplicadas(texto):
 
     for linea in texto.split('\n'):
         nueva_linea = linea
-        enlaces_markdown = re.findall(r'\[([^\]]+)\]\((https?://[^\)]+)\)', nueva_linea)
 
-        for texto_enlace, url in enlaces_markdown:
+        for match in re.finditer(r'\[([^\]]+)\]\((https?://[^\)]+)\)', nueva_linea):
+            texto_enlace, url = match.groups()
+            full_enlace = match.group(0)
+
             if url in urls_vistos:
-                nueva_linea = nueva_linea.replace(f"[{texto_enlace}]({url})", texto_enlace)
+                nueva_linea = nueva_linea.replace(full_enlace, texto_enlace)
             else:
                 urls_vistos.add(url)
 
-        urls_sueltos = re.findall(r'https?://[^\s\)\]]+', nueva_linea)
-
-        for url in urls_sueltos:
+        for match in re.finditer(r'https?://[^\s\)\]]+', nueva_linea):
+            url = match.group(0)
             if url in urls_vistos:
                 nueva_linea = nueva_linea.replace(url, '')
+
             else:
                 urls_vistos.add(url)
 
