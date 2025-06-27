@@ -95,7 +95,7 @@ def chat():
         Pregunta del usuario:
         \"{mensaje}\"
 
-        Responde como si fueras parte del equipo de soporte oficial de San Pablo.
+        Responde con claridad y brevedad, como si fueras parte del equipo de soporte oficial de San Pablo.
         """
 
     respuesta = generar_respuesta(prompt)
