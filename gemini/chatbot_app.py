@@ -100,7 +100,7 @@ def chat():
 
     respuesta = generar_respuesta(prompt)
     respuesta = quitar_urls_duplicadas(respuesta)
-
+    
     return jsonify({
         "respuesta": respuesta,
         "usó_contexto": bool(resultado),
@@ -108,41 +108,24 @@ def chat():
     })
 
 
+def quitar_urls_duplicadas(texto):
+    urls_vistas = set()
+    resultado = []
+    for linea in texto.split('\n'):
+        urls_en_linea = re.findall(r'https?://\S+', linea)
+        nueva_linea = linea
+        for url in urls_en_linea:
+            if url in urls_vistas:
+                nueva_linea = nueva_linea.replace(url, '')
+            else:
+                urls_vistas.add(url)
+        resultado.append(nueva_linea.strip())
+    return '\n'.join(resultado)
 
 
 @app.route("/")
 def home():
     return send_from_directory(".", "chat.html")
-
-def quitar_urls_duplicadas(texto):
-    urls_vistos = set()
-    resultado = []
-
-    for linea in texto.split('\n'):
-        nueva_linea = linea
-
-        for match in re.finditer(r'\[([^\]]+)\]\((https?://[^\)]+)\)', nueva_linea):
-            texto_enlace, url = match.groups()
-            full_enlace = match.group(0)
-
-            if url in urls_vistos:
-                nueva_linea = nueva_linea.replace(full_enlace, texto_enlace)
-            else:
-                urls_vistos.add(url)
-
-        for match in re.finditer(r'https?://[^\s\)\]]+', nueva_linea):
-            url = match.group(0)
-            if url in urls_vistos:
-                nueva_linea = nueva_linea.replace(url, '')
-
-            else:
-                urls_vistos.add(url)
-
-        if nueva_linea.strip():
-            resultado.append(nueva_linea.strip())
-
-    return '\n'.join(resultado).strip()
-
 
 
 # --- EJECUCIÓN ---
