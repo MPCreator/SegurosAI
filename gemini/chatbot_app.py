@@ -34,25 +34,30 @@ def embed_user_query(text: str):
 def buscar_similitud(consulta, umbral=0.80):
     consulta_emb = embed_user_query(consulta)
     similitudes = []
+
     for item in qa_data:
-        sim = cosine_similarity([consulta_emb], [item["embedding"]])[0][0]
-        similitudes.append((sim, item))
-    
+        for emb_info in item.get("embeddings", []):
+            emb = emb_info["embedding"]
+            sim = cosine_similarity([consulta_emb], [emb])[0][0]
+            similitudes.append((sim, item, emb_info["texto"]))
+
     if not similitudes:
         return None
-    
+
     similitudes.sort(reverse=True, key=lambda x: x[0])
-    mejor_score, mejor_item = similitudes[0]
+    mejor_score, mejor_item, texto_match = similitudes[0]
 
     if mejor_score >= umbral:
         return {
             "similitud": mejor_score,
             "pregunta": mejor_item["pregunta"],
             "respuesta": mejor_item["respuesta"],
-            "contexto": mejor_item.get("contexto", mejor_item["respuesta"])  
+            "texto_coincidente": texto_match,
+            "contexto": mejor_item.get("contexto", mejor_item["respuesta"])
         }
     else:
         return None
+
 
 def generar_respuesta(prompt):
     response = client.generate_content(prompt)
