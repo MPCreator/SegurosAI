@@ -7,6 +7,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
+from collections import defaultdict
 
 # --- CARGAR VARIABLES DEL .env ---
 load_dotenv()
@@ -58,10 +59,60 @@ def buscar_similitud(consulta, umbral=0.80):
     else:
         return None
 
+def clasificar_consulta(texto):
+    prompt = f"""
+    Clasifica la siguiente pregunta como "general" o "específica":
+
+    - General: si es un saludo o una duda amplia que no requiere detalles como montos, coberturas o procedimientos específicos.
+    - Específica: si está pidiendo información concreta que normalmente vendría de una base de datos o documento oficial.
+
+    Pregunta:
+    "{texto}"
+
+    Solo responde con una palabra: general o específica.
+    """
+    try:
+        respuesta = client.generate_content(prompt).text.strip().lower()
+        return "específica" if "específic" in respuesta else "general"
+    except Exception:
+        return "específica"  # fallback de seguridad
 
 def generar_respuesta(prompt):
     response = client.generate_content(prompt)
     return response.text
+
+def quitar_urls_duplicadas(texto: str) -> str:
+    import re
+
+    texto = re.sub(
+        r'\[(https?://[^\s\]]+)\]\(\1\)', 
+        r'\1',
+        texto
+    )
+
+    pattern = re.compile(
+        r'\[([^\]]+)\]\((https?://[^\s)]+)\)'  
+        r'|(?P<bare>https?://[^\s)]+)'         
+    )
+
+    seen = set()
+    resultado = []
+    last_end = 0
+
+    for m in pattern.finditer(texto):
+        url = m.group(2) or m.group('bare')
+        raw_match = texto[m.start():m.end()]
+        resultado.append(texto[last_end:m.start()])
+
+        if url not in seen:
+            resultado.append(raw_match)
+            seen.add(url)
+
+        last_end = m.end()
+
+    resultado.append(texto[last_end:])
+    return ''.join(resultado)
+
 
 # --- FLASK APP ---
 app = Flask(__name__)
@@ -89,44 +140,42 @@ def chat():
         Responde con claridad, como si fueras parte del equipo de soporte oficial de San Pablo.
         """
     else:
-        prompt = f"""
-        Eres un asistente especializado en atención al afiliado de un plan de salud privado del Grupo San Pablo. Tu función es resolver dudas de manera clara, precisa y empática, utilizando tus conocimientos generales en salud privada. No inventes coberturas o montos específicos si no tienes certeza. Indica al usuario que puede confirmar en los canales oficiales si es necesario.
+        tipo_consulta = clasificar_consulta(mensaje)
 
-        Pregunta del usuario:
-        \"{mensaje}\"
+        if tipo_consulta == "específica":
+            prompt = f"""
+            Eres un asistente especializado en atención al afiliado de un plan de salud privado del Grupo San Pablo. El usuario hizo una consulta que requiere datos específicos, pero no tienes información suficiente para responder con precisión.
 
-        Responde con claridad y brevedad, como si fueras parte del equipo de soporte oficial de San Pablo.
-        """
+            Indica de forma clara y empática que debe comunicarse con atención al afiliado al número (01) 610 3232 para obtener ayuda directa.
+
+            Pregunta del usuario:
+            \"{mensaje}\"
+
+            Sé breve, amable y profesional.
+            """
+        else:
+            prompt = f"""
+            Eres un asistente especializado en atención al afiliado de un plan de salud privado del Grupo San Pablo. Tu función es resolver dudas generales de manera clara, cordial y profesional. No inventes datos ni proporciones montos, pero puedes responder saludos y dudas comunes.
+
+            Pregunta del usuario:
+            \"{mensaje}\"
+
+            Responde de forma amigable y útil, sin mencionar el número de atención.
+            """
 
     respuesta = generar_respuesta(prompt)
+    print(f"🤖 Respuesta generada: {respuesta}")
     respuesta = quitar_urls_duplicadas(respuesta)
-    
+    print(f"🔗 URLs eliminadas: {respuesta}")
     return jsonify({
         "respuesta": respuesta,
         "usó_contexto": bool(resultado),
         "similitud": resultado["similitud"] if resultado else None
     })
 
-
-def quitar_urls_duplicadas(texto):
-    urls_vistas = set()
-    resultado = []
-    for linea in texto.split('\n'):
-        urls_en_linea = re.findall(r'https?://\S+', linea)
-        nueva_linea = linea
-        for url in urls_en_linea:
-            if url in urls_vistas:
-                nueva_linea = nueva_linea.replace(url, '')
-            else:
-                urls_vistas.add(url)
-        resultado.append(nueva_linea.strip())
-    return '\n'.join(resultado)
-
-
 @app.route("/")
 def home():
     return send_from_directory(".", "chat.html")
-
 
 # --- EJECUCIÓN ---
 if __name__ == "__main__":
